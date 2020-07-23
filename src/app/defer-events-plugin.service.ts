@@ -1,11 +1,12 @@
-import { Injectable } from '@angular/core';
-import { EventManager } from '@angular/platform-browser';
+import { Injectable, Inject, Provider } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { EVENT_MANAGER_PLUGINS, EventManager } from '@angular/platform-browser';
 
 @Injectable({
   providedIn: 'root'
 })
 export class DeferEventsPluginService {
-  constructor() {}
+  constructor(@Inject(DOCUMENT) private _document: Document) {}
 
   manager: EventManager;
 
@@ -13,7 +14,7 @@ export class DeferEventsPluginService {
     return /debounce|throttle/.test(eventName);
   }
 
-  addEventListener(element, eventName, originalHandler): Function {
+  addEventListener(targetElement, eventName, originalHandler): any {
     const [name, method, milliseconds = 300] = eventName.split('.');
 
     const innerHandler = (event) =>
@@ -28,13 +29,26 @@ export class DeferEventsPluginService {
     }
 
     this.manager.getZone().runOutsideAngular(() => {
-      element.addEventListener(name, handler);
+      targetElement.addEventListener(name, handler);
     });
 
     return () => {
-      element.removeEventListener(name, handler);
+      targetElement.removeEventListener(name, handler);
       handler = null;
     };
+  }
+
+  addGlobalEventListener(
+    selector: string,
+    eventName: string,
+    handler: (event: Event) => void
+  ): () => void {
+    let element;
+
+    if (selector === 'window') {
+      element = this._document.defaultView;
+    }
+    return this.addEventListener(element, eventName, handler);
   }
 }
 
@@ -77,4 +91,11 @@ const throttle = (callback, delay) => {
   };
 
   return throttledEventHandler;
+};
+
+export const DEFER_EVENTS_PLUGINS_PROVIDER: Provider = {
+  provide: EVENT_MANAGER_PLUGINS,
+  useClass: DeferEventsPluginService,
+  deps: [DOCUMENT],
+  multi: true
 };
