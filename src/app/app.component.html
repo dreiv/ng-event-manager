@@ -1,1 +1,6 @@
-<h1>hello world!</h1>
+<p>debounce:</p>
+<input (keyup.debounce)="doSomething($event)" />
+<p>debounce 500ms:</p>
+<input (keyup.debounce.500)="doSomething($event)" />
+<p>throttle 1s:</p>
+<input (keyup.throttle.1000)="doSomething($event)" />
